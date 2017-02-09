@@ -53,6 +53,8 @@ public class StorageScratchpad extends AbstractStorage {
         }
 	}
 	
+    static long lastTime = 0L;
+    
 	public void transactionToRequest(final byte[] buffer, final int offset) {
 
 	    final Set<Long> analyzedTransactions = new HashSet<>();
@@ -86,7 +88,11 @@ public class StorageScratchpad extends AbstractStorage {
                 //}
 
                 final long transactionsNextPointer = StorageTransactions.transactionsNextPointer;
+                long now = System.currentTimeMillis();
+                if ((now - lastTime) > 10000L) {
+                    lastTime = now;
                 log.info("Transactions to request = {}", numberOfTransactionsToRequest + " / " + (transactionsNextPointer - (CELLS_OFFSET - SUPER_GROUPS_OFFSET)) / CELL_SIZE + " (" + (System.currentTimeMillis() - beginningTime) + " ms / " + (numberOfTransactionsToRequest == 0 ? 0 : (previousNumberOfTransactions == 0 ? 0 : (((transactionsNextPointer - (CELLS_OFFSET - SUPER_GROUPS_OFFSET)) / CELL_SIZE - previousNumberOfTransactions) * 100) / numberOfTransactionsToRequest)) + "%)");
+                }
                 previousNumberOfTransactions = (int) ((transactionsNextPointer - (CELLS_OFFSET - SUPER_GROUPS_OFFSET)) / CELL_SIZE);
             }
 

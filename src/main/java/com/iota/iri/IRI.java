@@ -30,7 +30,7 @@ public class IRI {
     private static final Logger log = LoggerFactory.getLogger(IRI.class);
 
     public static final String NAME = "IRI";
-    public static final String VERSION = "1.1.2.6";
+    public static final String VERSION = "1.1.2.7";
 
     public static void main(final String[] args) {
 
@@ -76,6 +76,8 @@ public class IRI {
         final Option<String> neighbors = parser.addStringOption('n', "neighbors");
         final Option<Boolean> experimental = parser.addBooleanOption('e', "experimental");
         final Option<Boolean> help = parser.addBooleanOption('h', "help");
+        final Option<Integer> ratingThr = parser.addIntegerOption('x', "rating-threshold");
+        final Option<Integer> artLatency = parser.addIntegerOption('a', "art-latency");
 
         try {
             parser.parse(args);
@@ -146,6 +148,18 @@ public class IRI {
             log.info(Configuration.allSettings());
             StatusPrinter.print((LoggerContext) LoggerFactory.getILoggerFactory());
         }
+        
+        final Integer ratingThreshold = parser.getOptionValue(ratingThr);
+        if (ratingThreshold != null) {
+            log.info("Rating Threshold for TipManager is set to {}.",ratingThreshold);
+            TipsManager.setRATING_THRESHOLD(ratingThreshold);
+        }
+        
+        final Integer aLatency = parser.getOptionValue(artLatency);
+        if (aLatency != null) {
+            log.info("Artifical Latency for milestone updater is set to {}.",aLatency);
+            TipsManager.setARTIFICAL_LATENCY(aLatency);
+        }
     }
 
     private static void printUsage() {
@@ -157,6 +171,8 @@ public class IRI {
                 "[{-d,--debug}] " +
                 "[{-e,--experimental}]" +
                 "[{--remote}]" +
+                "[{--rating-threshold} 50]" +
+                "[{--art-latency} 1200]" +
                 // + "[{-t,--testnet} false] " // -> TBDiscussed (!)
                 "[{-n,--neighbors} '<list of neighbors>'] ", NAME, VERSION);
         System.exit(0);
@@ -167,7 +183,6 @@ public class IRI {
 
             log.info("Shutting down IOTA node, please hold tight...");
             try {
-
                 //IXI.instance().shutdown();
                 API.instance().shutDown();
                 TipsManager.instance().shutDown();

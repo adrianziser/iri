@@ -13,10 +13,9 @@ import com.iota.iri.hash.Curl;
 import com.iota.iri.hash.ISS;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
-import com.iota.iri.service.storage.Storage;
+import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.StorageAddresses;
 import com.iota.iri.service.storage.StorageScratchpad;
-import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.StorageTransactions;
 import com.iota.iri.utils.Converter;
 
@@ -36,6 +35,10 @@ public class Milestone {
     private static final Set<Long> analyzedMilestoneRetryCandidates = new HashSet<>();
     private static final Map<Integer, Hash> milestones = new ConcurrentHashMap<>();
 
+    public static Hash getMilestone(int milestoneIndex) {
+        return milestones.get(milestoneIndex);
+    }
+    
     public static void updateLatestMilestone() { // refactor
 
         final long now = System.currentTimeMillis() / 1000L;
