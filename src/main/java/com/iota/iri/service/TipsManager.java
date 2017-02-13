@@ -1,6 +1,9 @@
 package com.iota.iri.service;
 
 import java.security.SecureRandom;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,8 +23,10 @@ import com.iota.iri.Snapshot;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
 import com.iota.iri.service.storage.Storage;
+import com.iota.iri.service.storage.StorageAddresses;
 import com.iota.iri.service.storage.StorageApprovers;
 import com.iota.iri.service.storage.StorageTransactions;
+import com.iota.iri.utils.Converter;
 
 public class TipsManager {
 
@@ -29,7 +34,7 @@ public class TipsManager {
 
     private static int RATING_THRESHOLD = 75; // Must be in [0..100] range
     
-    private static int ARTIFICAL_LATENCY = 1200; 
+    private static int ARTIFICAL_LATENCY = 120; // in seconds 
 
     static boolean shuttingDown;
 
@@ -74,8 +79,13 @@ public class TipsManager {
                                 + Milestone.latestSolidSubtangleMilestoneIndex);
                     }
 
-                    long latency = (long)((long)(rnd.nextInt(ARTIFICAL_LATENCY))*1000L)+5000L;
-                    log.info("Next milestone check in {} seconds",latency/1000L);
+                    long latency = 5000;
+                    if (Milestone.latestSolidSubtangleMilestoneIndex > Milestone.MILESTONE_START_INDEX &&
+                            Milestone.latestMilestoneIndex == Milestone.latestSolidSubtangleMilestoneIndex) {
+                        latency = (long)((long)(rnd.nextInt(ARTIFICAL_LATENCY))*1000L)+5000L;
+                    }
+                    //log.info("Next milestone check in {} seconds",latency/1000L);
+                    
                     Thread.sleep(latency);
 
                 } catch (final Exception e) {
@@ -88,7 +98,31 @@ public class TipsManager {
     static Hash transactionToApprove(final Hash extraTip, int depth) {
 
         final Hash preferableMilestone = Milestone.latestSolidSubtangleMilestone;
-
+        
+        final int oldestAcceptableMilestoneIndex = Milestone.latestSolidSubtangleMilestoneIndex - depth;
+        
+        long criticalArrivalTime = Long.MAX_VALUE;
+        for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
+            final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+            if (transaction.currentIndex == 0) {
+                int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET, 15);
+                if (milestoneIndex >= oldestAcceptableMilestoneIndex) {
+                    long itsArrivalTime = transaction.arrivalTime;
+                    final long timestamp = (int) Converter.longValue(transaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                    if (itsArrivalTime == 0) itsArrivalTime = timestamp;
+                    if (itsArrivalTime < criticalArrivalTime) {                        
+                        criticalArrivalTime = itsArrivalTime;
+                        //oldestAcceptableMilestone = new Hash(transaction.hash);
+                    }
+                }
+            }
+        }
+        
+        //DateFormat formatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        //Calendar calendar = Calendar.getInstance();
+        //calendar.setTimeInMillis(criticalArrivalTime);
+        //log.info("Oldest accepted solid milestone index "+oldestAcceptableMilestoneIndex+", arrival time "+formatter.format(calendar.getTime()));
+        
         System.arraycopy(zeroedAnalyzedTransactionsFlags, 0, analyzedTransactionsFlags, 0, 134217728);
 
         Map<Hash, Long> state = new HashMap<>(Snapshot.initialState);
@@ -308,6 +342,19 @@ public class TipsManager {
 
                                 for (final Transaction bundleTransaction : bundleTransactions) {
 
+                                    final long timestamp = (int) Converter.longValue(bundleTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                                    long itsArrivalTime = bundleTransaction.arrivalTime;
+                                    if (itsArrivalTime == 0) itsArrivalTime = timestamp;
+                                                                        
+                                    if ( itsArrivalTime < criticalArrivalTime ) {
+                                        //formatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                                        //calendar = Calendar.getInstance();
+                                        //calendar.setTimeInMillis(criticalArrivalTime);
+                                        //log.info("---discard this tail with arrival time "+formatter.format(calendar.getTime()));
+                                        extraTransactionsCopy = null;
+                                        break;
+                                    }
+                                    
                                     if (!extraTransactionsCopy
                                             .remove(bundleTransaction.pointer)) {
                                         extraTransactionsCopy = null;
@@ -367,9 +414,10 @@ public class TipsManager {
         // System.out.ln(bestRating + " extra transactions approved");
 
         /**/if (tailsRaitings.isEmpty()) {
-            /**/
+            /**/if (extraTip == null) {
             /**/return preferableMilestone;
             /**/}
+        /**/}
 
         /**/final Map<Hash, Integer> filteredTailsRatings = new HashMap<>();
         /**/long totalSquaredRating = 0;
@@ -381,7 +429,8 @@ public class TipsManager {
                 /**/totalSquaredRating += ((long) entry.getValue()) * entry.getValue();
                 /**/}
             /**/}
-        /**/long hit = java.util.concurrent.ThreadLocalRandom.current().nextLong(totalSquaredRating);
+        /**/if (totalSquaredRating > 0L) {
+            /**/long hit = java.util.concurrent.ThreadLocalRandom.current().nextLong(totalSquaredRating);
         /**/for (final Map.Entry<Hash, Integer> entry : filteredTailsRatings.entrySet()) {
             /**/
             /**/if ((hit -= ((long) entry.getValue()) * entry.getValue()) < 0) {
@@ -390,6 +439,10 @@ public class TipsManager {
                 /**/return entry.getKey();
                 /**/}
             /**/}
+        /**/}
+        /**/else {
+            /**/return preferableMilestone;
+        /**/}
 
         /**/throw new RuntimeException("Must never be reached!");
 

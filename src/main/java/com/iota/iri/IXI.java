@@ -1,22 +1,36 @@
 package com.iota.iri;
 
+import static com.sun.jmx.mbeanserver.Util.cast;
+import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.HashMap;
+import java.util.Map;
+import javax.script.Bindings;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
 import com.iota.iri.conf.Configuration;
 import com.iota.iri.conf.Configuration.DefaultConfSettings;
 import com.iota.iri.service.CallableRequest;
 import com.iota.iri.service.dto.AbstractResponse;
 import com.iota.iri.service.dto.ErrorResponse;
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
-
-import javax.script.*;
-import java.io.*;
-import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
-import static com.sun.jmx.mbeanserver.Util.cast;
-import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
-import static java.nio.file.StandardWatchEventKinds.*;
 
 public class IXI {
 
@@ -39,7 +53,7 @@ public class IXI {
     public static void init() throws Exception {
         watcher = FileSystems.getDefault().newWatchService();
         Path path = Paths.get(Configuration.string(DefaultConfSettings.IXI_DIR));
-        String s = path.toAbsolutePath().toString();
+        //String s = path.toAbsolutePath().toString();
         register(path);
         dirWatchThread = (new Thread(IXI::processEvents));
         dirWatchThread.start();

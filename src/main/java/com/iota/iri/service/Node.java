@@ -38,6 +38,7 @@ import com.iota.iri.model.Transaction;
 import com.iota.iri.service.storage.Storage;
 import com.iota.iri.service.storage.StorageScratchpad;
 import com.iota.iri.service.storage.StorageTransactions;
+import com.iota.iri.utils.Converter;
 
 /**
  * The class node is responsible for managing Thread's connection.
@@ -67,6 +68,12 @@ public class Node {
             TRANSACTION_PACKET_SIZE);
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
+    
+    private static long TIMESTAMP_THRESHOLD = 0L;
+
+    public static void setTIMESTAMP_THRESHOLD(long tIMESTAMP_THRESHOLD) {
+        TIMESTAMP_THRESHOLD = tIMESTAMP_THRESHOLD;
+    }
 
     public void init() throws Exception {
 
@@ -178,6 +185,7 @@ public class Node {
 
             final SecureRandom rnd = new SecureRandom();
             long randomTipBroadcastCounter = 1;
+            long pointer;
 
             while (!shuttingDown.get()) {
 
@@ -193,9 +201,12 @@ public class Node {
                                     neighbor.incAllTransactions();
                                     final Transaction receivedTransaction = new Transaction(receivingPacket.getData(),
                                             receivedTransactionTrits, curl);
-                                    if (StorageTransactions.instance().storeTransaction(receivedTransaction.hash,
-                                            receivedTransaction, false) != 0) {
-                                        neighbor.incNewTransactions();
+                                    long timestamp = (int) Converter.longValue(receivedTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                                    if (timestamp > TIMESTAMP_THRESHOLD) {
+                                        if ((pointer = StorageTransactions.instance().storeTransaction(receivedTransaction.hash,
+                                            receivedTransaction, false)) != 0L) {
+                                            StorageTransactions.instance().setArrivalTime(pointer, System.currentTimeMillis() / 1000L);
+                                            neighbor.incNewTransactions();
                                         broadcast(receivedTransaction);
                                     }
 
@@ -206,21 +217,18 @@ public class Node {
                                             (Milestone.latestMilestoneIndex > 0) && 
                                             (Milestone.latestMilestoneIndex == Milestone.latestSolidSubtangleMilestoneIndex)) { 
                                     	//
-                                    	if (randomTipBroadcastCounter % 72 == 0) {
+                                    	if (randomTipBroadcastCounter % 60 == 0) {
                                     	    byte [] mBytes = Milestone.latestMilestone.bytes();
                                     	    if (!Arrays.equals(mBytes, Hash.NULL_HASH.bytes())) {
-                                                transactionPointer = StorageTransactions.instance()
-                                                    .transactionPointer(mBytes);
+                                                transactionPointer = StorageTransactions.instance().transactionPointer(mBytes);
                                     	    }
                                         }
-                                    	else if (randomTipBroadcastCounter % 60 == 0) {
+                                    	else if (randomTipBroadcastCounter % 48 == 0) {
                                     	    byte [] mBytes = Milestone.latestMilestone.bytes();
                                             if (!Arrays.equals(mBytes, Hash.NULL_HASH.bytes())) {
-                                                transactionPointer = StorageTransactions.instance()
-                                                    .transactionPointer(mBytes);
+                                                transactionPointer = StorageTransactions.instance().transactionPointer(mBytes);
                                             
-                                                final Transaction milestoneTx = StorageTransactions.instance()
-                                                    .loadTransaction(transactionPointer);
+                                                final Transaction milestoneTx = StorageTransactions.instance().loadTransaction(transactionPointer);
                                                 final Bundle bundle = new Bundle(milestoneTx.bundle);
                                                 if (bundle != null) {
                                                     Collection<List<Transaction>> tList = bundle.getTransactions();
@@ -234,14 +242,11 @@ public class Node {
                                                 }
                                             }
                                         }
-                                    	else if (randomTipBroadcastCounter % 6 == 0) {
-                                    		final String [] tips = StorageTransactions.instance().tips().stream()
-                                                    .map(Hash::toString)
-                                                    .toArray(size -> new String[size]);
+                                    	else if (randomTipBroadcastCounter % 24 == 0) {
+                                    		final String [] tips = StorageTransactions.instance().tips().stream().map(Hash::toString).toArray(size -> new String[size]);
                                             final String rndTipHash = tips[rnd.nextInt(tips.length)];
 
-                                            transactionPointer = StorageTransactions.instance()
-                                                    .transactionPointer(rndTipHash.getBytes());
+                                            transactionPointer = StorageTransactions.instance().transactionPointer(rndTipHash.getBytes());
                                         }
                                         randomTipBroadcastCounter++;
                                         } else {
@@ -250,12 +255,12 @@ public class Node {
                                     if (transactionPointer != 0L && transactionPointer > (Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET) ) {
                                         synchronized (sendingPacket) {
                                             System.arraycopy(
-                                                    StorageTransactions.instance()
-                                                            .loadTransaction(transactionPointer).bytes,
+                                                    StorageTransactions.instance().loadTransaction(transactionPointer).bytes,
                                                     0, sendingPacket.getData(), 0, Transaction.SIZE);
                                             StorageScratchpad.instance().transactionToRequest(sendingPacket.getData(),
                                                     Transaction.SIZE);
                                             neighbor.send(sendingPacket);
+                                            }
                                         }
                                     }
                                 } catch (final RuntimeException e) {

@@ -158,6 +158,19 @@ public class StorageTransactions extends AbstractStorage {
         }
     }
 	
+    public void setArrivalTime(final long pointer, final long value) {
+        synchronized (Storage.class) {            
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET, (byte)value);
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+1, (byte)(value >> 8));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+2, (byte)(value >> 16));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+3, (byte)(value >> 24));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+4, (byte)(value >> 32));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+5, (byte)(value >> 40));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+6, (byte)(value >> 48));
+            transactionsChunks[(int)(pointer >> 27)].put(((int)(pointer & (CHUNK_SIZE - 1))) + Transaction.ARRIVAL_TIME_OFFSET+7, (byte)(value >> 56));
+        }
+    }
+
     public boolean tipFlag(final long pointer) {
     	synchronized (Storage.class) {
             final long index = (pointer - (CELLS_OFFSET - SUPER_GROUPS_OFFSET)) >> 11;

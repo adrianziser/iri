@@ -28,6 +28,8 @@ public class Transaction {
 
     public static final int VALIDITY_OFFSET = BRANCH_TRANSACTION_OFFSET + BRANCH_TRANSACTION_SIZE + ((Long.BYTES - (BRANCH_TRANSACTION_SIZE & (Long.BYTES - 1))) & (Long.BYTES - 1)), VALIDITY_SIZE = 1;
 
+    public static final int ARRIVAL_TIME_OFFSET = VALIDITY_OFFSET + VALIDITY_SIZE + ((Long.BYTES - (VALIDITY_SIZE & (Long.BYTES - 1))) & (Long.BYTES - 1)), ARIVAL_TIME_SIZE = Long.BYTES;
+
     public static final long SUPPLY = 2779530283277761L; // = (3^33 - 1) / 2
 
     public static final int SIGNATURE_MESSAGE_FRAGMENT_TRINARY_OFFSET = 0, SIGNATURE_MESSAGE_FRAGMENT_TRINARY_SIZE = 6561;
@@ -58,6 +60,8 @@ public class Transaction {
     
     public final long value; // <0 spending transaction, >=0 deposit transaction / message
     
+    public long arrivalTime;
+
     public final byte[] tag; // milestone index only for milestone tx. Otherwise, arbitrary up to the tx issuer.
     public final long currentIndex; // index of tx in the bundle
     public final long lastIndex; // lastIndex is curIndex of the last tx from the same bundle
@@ -99,6 +103,7 @@ public class Transaction {
         trunkTransactionPointer = 0;
         branchTransactionPointer = 0;
         validity = 0;
+        arrivalTime = 0;
 
         pointer = 0;
     }
@@ -144,6 +149,7 @@ public class Transaction {
         trunkTransactionPointer = 0;
         branchTransactionPointer = 0;
         validity = 0;
+        arrivalTime = 0;
 
         pointer = 0;
     }
@@ -174,6 +180,8 @@ public class Transaction {
         }
 
         validity = mainBuffer[VALIDITY_OFFSET];
+        
+        arrivalTime = Storage.value(mainBuffer, ARRIVAL_TIME_OFFSET);
 
         this.pointer = pointer;
     }
@@ -248,4 +256,3 @@ public class Transaction {
 		return validity;
 	}
 }
-
