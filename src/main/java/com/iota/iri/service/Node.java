@@ -209,8 +209,10 @@ public class Node {
 
                     if (receivingPacket.getLength() == TRANSACTION_PACKET_SIZE) {
 
+                        boolean knownNeighbor = false;
                         for (final Neighbor neighbor : neighbors) {
                             if (neighbor.getAddress().equals(receivingPacket.getSocketAddress())) {
+                                knownNeighbor = true;
                                 try {
                                     neighbor.incAllTransactions();
                                     final Transaction receivedTransaction = new Transaction(receivingPacket.getData(), receivedTransactionTrits, curl);
@@ -278,15 +280,15 @@ public class Node {
                                 }
                                 break;
                             }
-                            else {
-                                InetSocketAddress a = (InetSocketAddress)receivingPacket.getSocketAddress();
-                                String uriString = "udp://" + a.toString();
-                                log.info("Adding new neighbor: "+uriString);
-                                final URI uri = new URI(uriString);
-                                final Neighbor newneighbor = new Neighbor(new InetSocketAddress(uri.getHost(), uri.getPort()));
-                                if (!Node.instance().getNeighbors().contains(newneighbor)) {
-                                    Node.instance().getNeighbors().add(newneighbor);
-                                }
+                        }
+                        if (!knownNeighbor) {
+                            InetSocketAddress a = (InetSocketAddress)receivingPacket.getSocketAddress();
+                            String uriString = "udp://" + a.toString();
+                            log.info("Adding new neighbor: "+uriString);
+                            final URI uri = new URI(uriString);
+                            final Neighbor newneighbor = new Neighbor(new InetSocketAddress(uri.getHost(), uri.getPort()));
+                            if (!Node.instance().getNeighbors().contains(newneighbor)) {
+                                Node.instance().getNeighbors().add(newneighbor);
                             }
                         }
                     } else {
