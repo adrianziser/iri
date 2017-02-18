@@ -283,7 +283,7 @@ public class Node {
                         }
                         if (!knownNeighbor) {
                             InetSocketAddress a = (InetSocketAddress)receivingPacket.getSocketAddress();
-                            String uriString = "udp://" + a.toString();
+                            String uriString = "udp:/" + a.toString();
                             log.info("Adding new neighbor: "+uriString);
                             final URI uri = new URI(uriString);
                             final Neighbor newneighbor = new Neighbor(new InetSocketAddress(uri.getHost(), uri.getPort()));
