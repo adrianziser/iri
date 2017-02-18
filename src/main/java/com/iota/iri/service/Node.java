@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import com.iota.iri.model.Hash;
+
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,8 +118,15 @@ public class Node {
 
             while (!shuttingDown.get()) {
                 log.info("Checking Neighbors' Ip...");
+                List<Neighbor> removeCandidates = new ArrayList<>();
 
                 try {
+                    neighbors.forEach(n -> {
+                        if (n.getNumberOfAllTransactions() == n.getNumberOfAllTransactionsLastCheck()) {
+                            removeCandidates.add(n);
+                        }
+                        n.setNumberOfAllTransactionsLastHceck(n.getNumberOfAllTransactions());
+                    }); 
                     neighbors.forEach(n -> {
                         final String hostname = n.getAddress().getHostName();
                         checkIp(hostname).ifPresent(ip -> {
@@ -129,6 +139,7 @@ public class Node {
                                 if (neighborAddress.equals(ip)) {
                                     log.info("{} seems fine.", hostname);
                                 } else {
+                                    removeCandidates.remove(n);
                                     log.info("CHANGED IP for {}! Updating...", hostname);
                                     
                                     uri("udp://" + hostname).ifPresent(uri -> {
@@ -141,7 +152,10 @@ public class Node {
                                     });
                                 }
                             }
-                        });
+                            });
+                    });
+                    removeCandidates.forEach(n -> {
+                        neighbors.remove(n);
                     });
 
                     Thread.sleep(1000*60*30);
@@ -263,6 +277,9 @@ public class Node {
                                     neighbor.incInvalidTransactions();
                                 }
                                 break;
+                            }
+                            else {
+                                Node.instance().getNeighbors().add(new Neighbor((InetSocketAddress) (receivingPacket.getSocketAddress())));
                             }
                         }
                     } else {

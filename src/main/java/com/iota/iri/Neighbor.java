@@ -12,6 +12,7 @@ public class Neighbor {
     private int numberOfAllTransactions;
     private int numberOfNewTransactions;
     private int numberOfInvalidTransactions;
+    private int numberOfAllTransactionsLastCheck;
 
     public Neighbor(final InetSocketAddress address) {
         this.address = address;
@@ -68,5 +69,13 @@ public class Neighbor {
     
     public int getNumberOfNewTransactions() {
 		return numberOfNewTransactions;
+	}
+    
+    public void setNumberOfAllTransactionsLastHceck(int number) {
+        numberOfAllTransactionsLastCheck = number;
+    }
+    
+    public int getNumberOfAllTransactionsLastCheck() {
+        return numberOfAllTransactionsLastCheck;
 	}
 }
