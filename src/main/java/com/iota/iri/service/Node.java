@@ -279,7 +279,14 @@ public class Node {
                                 break;
                             }
                             else {
-                                Node.instance().getNeighbors().add(new Neighbor((InetSocketAddress) (receivingPacket.getSocketAddress())));
+                                InetSocketAddress a = (InetSocketAddress)receivingPacket.getSocketAddress();
+                                String uriString = "udp://" + a.toString();
+                                log.info("Adding new neighbor: "+uriString);
+                                final URI uri = new URI(uriString);
+                                final Neighbor newneighbor = new Neighbor(new InetSocketAddress(uri.getHost(), uri.getPort()));
+                                if (!Node.instance().getNeighbors().contains(newneighbor)) {
+                                    Node.instance().getNeighbors().add(newneighbor);
+                                }
                             }
                         }
                     } else {
