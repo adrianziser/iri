@@ -122,7 +122,7 @@ public class Node {
 
                 try {
                     neighbors.forEach(n -> {
-                        if (n.getNumberOfAllTransactions() == n.getNumberOfAllTransactionsLastCheck()) {
+                        if ( ( n.getNumberOfAllTransactions() > 0 )  && (n.getNumberOfAllTransactions() == n.getNumberOfAllTransactionsLastCheck() ) ) {
                             removeCandidates.add(n);
                         }
                         n.setNumberOfAllTransactionsLastHceck(n.getNumberOfAllTransactions());
