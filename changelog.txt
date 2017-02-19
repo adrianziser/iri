@@ -1,3 +1,7 @@
+1.1.2.11-stresstest
+    - Default port is 14600
+	- Tethering disabled.
+
 1.1.2.9:
     - Program argument to set timestamp filter for incoming txs
 

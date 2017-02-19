@@ -9,7 +9,7 @@ This is the testnet branch of the main IRI repository, as this is a IOTA referen
 
 It allows to connect easily using java directly to a local or a remote [[IOTA node]](https://iota.readme.io/docs/syncing-to-the-network).
 
-* **Latest release:** 1.1.2.10 Stresstest Release
+* **Latest release:** 1.1.2.11 Stresstest Release
 * **License:** GPLv3
 
 # Purpose of this repository
@@ -54,7 +54,7 @@ This will create in the `target` directory of the project an executable jar pack
 
 * To execute:
 
-`java -jar IRI-${version}.jar [{-p,--port} 14265] [{-r,--receiver-port} 14265] [{-c,--enabled-cors} *] [{-h}] [[--headless}] [{-d,--debug}] [{-n,--neighbors} '<list of neighbors>'] [{-e,--experimental}]`
+`java -jar IRI-${version}.jar [{-p,--port} 14260] [{-r,--receiver-port} 14260] [{-c,--enabled-cors} *] [{-h}] [[--headless}] [{-d,--debug}] [{-n,--neighbors} '<list of neighbors>'] [{-e,--experimental}]`
 
 Where
 
@@ -78,5 +78,5 @@ the following parameters are optional:
  
 For instance
 
-`java -jar target/iri-1.1.1.jar -p 14265 -n 'udp://1.1.1.1:14265 udp://2.2.2.2:14265' -d -c 'iotatoken.com'`
+`java -jar target/iri-1.1.1.jar -p 14260 -n 'udp://1.1.1.1:14260 udp://2.2.2.2:14260' -d -c 'iotatoken.com'`
 

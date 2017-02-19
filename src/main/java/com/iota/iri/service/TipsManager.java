@@ -31,7 +31,7 @@ public class TipsManager {
 
     private static int RATING_THRESHOLD = 75; // Must be in [0..100] range
     
-    private static int ARTIFICAL_LATENCY = 120; // in seconds 
+    private static int ARTIFICAL_LATENCY = 60; // in seconds 
 
     static boolean shuttingDown;
 
