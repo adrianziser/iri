@@ -60,7 +60,7 @@ public class IRI {
     private static void validateParams(final String[] args) {
 
         if (args == null || args.length < 2) {
-            log.error("Invalid arguments list. Provide Api port number (i.e. '-p 14260').");
+            log.error("Invalid arguments list. Provide Api port number (i.e. '-p 14600').");
             printUsage();
         }
 
@@ -172,8 +172,8 @@ public class IRI {
 
     private static void printUsage() {
         log.info("Usage: java -jar {}-{}.jar " +
-                "[{-p,--port} 14260] " +
-                "[{-r,--receiver-port} 14260] " +
+                "[{-p,--port} 14600] " +
+                "[{-r,--receiver-port} 14600] " +
                 "[{-c,--enabled-cors} *] " +
                 "[{-h}] [{--headless}] " +
                 "[{-d,--debug}] " +
