@@ -1,3 +1,6 @@
+1.1.2.12-stresstest
+    - Speed up getTransactionToApprove
+
 1.1.2.11-stresstest
     - Default port is 14600
 	- Tethering disabled.

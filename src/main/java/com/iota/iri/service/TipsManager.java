@@ -178,8 +178,13 @@ public class TipsManager {
                                 }
                             }
 
-                            nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
-                            nonAnalyzedTransactions.offer(transaction.branchTransactionPointer);
+                            final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
+                            long branchArrivalTime = branchTransaction.arrivalTime;
+                            if (branchArrivalTime >= criticalArrivalTime) {
+                                nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
+                                nonAnalyzedTransactions.offer(transaction.branchTransactionPointer);
+                            }
+
                         }
                     }
                 }
@@ -190,19 +195,19 @@ public class TipsManager {
                 }
             }
 
-            final Iterator<Map.Entry<Hash, Long>> stateIterator = state.entrySet().iterator();
-            while (stateIterator.hasNext()) {
+//            final Iterator<Map.Entry<Hash, Long>> stateIterator = state.entrySet().iterator();
+//            while (stateIterator.hasNext()) {
 
-                final Map.Entry<Hash, Long> entry = stateIterator.next();
-                if (entry.getValue() <= 0) {
+//                final Map.Entry<Hash, Long> entry = stateIterator.next();
+//                if (entry.getValue() <= 0) {
 
-                    if (entry.getValue() < 0) {
-                        log.info("Ledger inconsistency detected");
-                        return null;
-                    }
+//                    if (entry.getValue() < 0) {
+//                        log.info("Ledger inconsistency detected");
+//                        return null;
+//                    }
 
-                    stateIterator.remove();
-                }
+//                    stateIterator.remove();
+//                }
                 //////////// --Coo only--
                 /*
                  * if (entry.getValue() > 0) {
@@ -211,7 +216,7 @@ public class TipsManager {
                  * + "\"), " + entry.getValue() + "L);"); }
                  */
                 ////////////
-            }
+//            }
 
             System.arraycopy(analyzedTransactionsFlags, 0, analyzedTransactionsFlagsCopy, 0, 134217728);
             System.arraycopy(zeroedAnalyzedTransactionsFlags, 0, analyzedTransactionsFlags, 0, 134217728);
@@ -350,12 +355,10 @@ public class TipsManager {
                                 if (bundleTransactions.get(0).pointer == transaction.pointer) {
 
                                     for (final Transaction bundleTransaction : bundleTransactions) {
-
-                                        final long timestamp = (int) Converter.longValue(bundleTransaction.trits(),
-                                                Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                                        
                                         long itsArrivalTime = bundleTransaction.arrivalTime;
                                         if (itsArrivalTime == 0)
-                                            itsArrivalTime = timestamp;
+                                            itsArrivalTime = (int) Converter.longValue(bundleTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
 
                                         if (itsArrivalTime < criticalArrivalTime) {
                                             extraTransactionsCopy = null;
