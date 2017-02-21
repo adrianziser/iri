@@ -228,6 +228,7 @@ public class Node {
                                             tx_summary.branch_pointer = receivedTransaction.branchTransactionPointer;
                                             tx_summary.arrivalTime = arrivalTime;
                                             tx_summary.currentIndex = receivedTransaction.currentIndex;
+                                            tx_summary.bundle = new byte[Transaction.BUNDLE_SIZE];
                                             System.arraycopy(receivedTransaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
                                             TipsManager.transactionSummaryTable.put(pointer, tx_summary);
                                             neighbor.incNewTransactions();

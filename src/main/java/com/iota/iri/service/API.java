@@ -298,6 +298,7 @@ public class API {
             tx_summary.branch_pointer = transaction.branchTransactionPointer;
             tx_summary.arrivalTime = arrivalTime;
             tx_summary.currentIndex = transaction.currentIndex;
+            tx_summary.bundle = new byte[Transaction.BUNDLE_SIZE];
             System.arraycopy(transaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
             TipsManager.transactionSummaryTable.put(pointer, tx_summary);
         }
