@@ -225,6 +225,7 @@ log.info("Did not find {}",pointer);
                                 }
                             }
 
+                            /*
                             final TransactionSummary branchTransactionSummary = transactionSummaryTable.get(transactionSummary.branch_pointer);
                             //final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
                             if (branchTransactionSummary != null) {
@@ -234,7 +235,9 @@ log.info("Did not find {}",pointer);
                                 nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
                                 }
                             }
-
+                            */
+                            nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
+                            nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
                         }
                     }
                 }
