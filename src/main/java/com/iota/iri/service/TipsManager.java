@@ -236,8 +236,10 @@ log.info("Did not find {}",pointer);
                                 }
                             }
                             */
-                            nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
-                            nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
+                            if (transactionSummary.trunk_pointer != 0)
+                                nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
+                            if (transactionSummary.branch_pointer != 0)
+                                nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
 log.info("offered");                            
                         }
                     }
