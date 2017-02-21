@@ -175,13 +175,13 @@ public class TipsManager {
                         .instance().transactionPointer((extraTip == null ? preferableMilestone : extraTip).bytes())));
                 Long pointer;
                 while ((pointer = nonAnalyzedTransactions.poll()) != null) {
-log.info("pointer={}",pointer);
+//log.info("pointer={}",pointer);
                     if (setAnalyzedTransactionFlag(pointer)) {
 
                         numberOfAnalyzedTransactions++;
 
                         //final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-                        final TransactionSummary transactionSummary = transactionSummaryTable.get(pointer);
+                        TransactionSummary transactionSummary = transactionSummaryTable.get(pointer);
                         //if (transaction.type == Storage.PREFILLED_SLOT) {
                         if (transactionSummary == null) {
 log.info("Did not find {}",pointer);
@@ -236,18 +236,14 @@ log.info("Did not find {}",pointer);
                                 }
                             }
                             */
-                            int m = 0;
-                            if (transactionSummary.trunk_pointer != 0) {
-                                nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
-                                m++;
+                            if (transactionSummary.trunk_pointer == 0) {
+                                Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                                transactionSummary.branch_pointer = transaction.branchTransactionPointer;
+                                transactionSummary.trunk_pointer = transaction.trunkTransactionPointer;
                             }
-                                
-                            if (transactionSummary.branch_pointer != 0) {
-                                nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
-                                m++;
-                            }
-                                
-log.info("offered {}",m);                            
+                            nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);                                
+                            nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
+                                              
                         }
                     }
                 }
