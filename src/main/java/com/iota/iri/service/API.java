@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import com.iota.iri.*;
 
+import com.iota.iri.service.TipsManager.TransactionSummary;
 import com.iota.iri.service.dto.*;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -288,7 +289,17 @@ public class API {
         for (final String trytes : trys) {
             final Transaction transaction = new Transaction(Converter.trits(trytes));
             pointer = StorageTransactions.instance().storeTransaction(transaction.hash, transaction, false);
-            StorageTransactions.instance().setArrivalTime(pointer, System.currentTimeMillis() / 1000L);
+            long arrivalTime = System.currentTimeMillis() / 1000L;
+            StorageTransactions.instance().setArrivalTime(pointer, arrivalTime );
+            TipsManager.TransactionSummary tx_summary = TipsManager.instance().new TransactionSummary();
+            tx_summary.tx_hash = new Hash(transaction.hash, 0, Transaction.HASH_SIZE);
+            tx_summary.tx_address = new Hash(transaction.address);
+            tx_summary.trunk_pointer = transaction.trunkTransactionPointer;
+            tx_summary.branch_pointer = transaction.branchTransactionPointer;
+            tx_summary.arrivalTime = arrivalTime;
+            tx_summary.currentIndex = transaction.currentIndex;
+            System.arraycopy(transaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
+            TipsManager.transactionSummaryTable.put(pointer, tx_summary);
         }
         return AbstractResponse.createEmptyResponse();
     }

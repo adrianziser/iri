@@ -1,9 +1,11 @@
 package com.iota.iri.service;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +21,8 @@ import com.iota.iri.Milestone;
 import com.iota.iri.Snapshot;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
+import com.iota.iri.service.TipsManager.TransactionSummary;
+import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.Storage;
 import com.iota.iri.service.storage.StorageAddresses;
 import com.iota.iri.service.storage.StorageApprovers;
@@ -40,6 +44,20 @@ public class TipsManager {
     static final byte[] analyzedTransactionsFlags = new byte[134217728];
     static final byte[] analyzedTransactionsFlagsCopy = new byte[134217728];
     static final byte[] zeroedAnalyzedTransactionsFlags = new byte[134217728];
+
+    public class TransactionSummary {
+        Hash tx_hash;
+        Hash tx_address;
+        long trunk_pointer;
+        long branch_pointer;
+        long arrivalTime;
+        long currentIndex;
+        byte[] bundle;
+    }
+    
+    static public Hashtable<Long,TransactionSummary> transactionSummaryTable = new Hashtable<>(200000);
+    
+    static public Hashtable<ByteBuffer,Bundle> bundleTable = new Hashtable<>(200000);
     
     public static void setRATING_THRESHOLD(int value) {
         if (value < 0) value = 0;
@@ -53,6 +71,26 @@ public class TipsManager {
     
     public void init() {
 
+        // Fill the runtime tangle objects
+        long pointer = AbstractStorage.CELLS_OFFSET - AbstractStorage.SUPER_GROUPS_OFFSET;
+        log.info("Loading transaction summaries");
+        while (pointer < StorageTransactions.transactionsNextPointer) {
+            Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+            if (transaction.type == Storage.PREFILLED_SLOT) {
+                TipsManager.TransactionSummary tx_summary = TipsManager.instance().new TransactionSummary();
+                tx_summary.tx_hash = new Hash(transaction.hash, 0, Transaction.HASH_SIZE);
+                tx_summary.tx_address = new Hash(transaction.address);
+                tx_summary.trunk_pointer = transaction.trunkTransactionPointer;
+                tx_summary.branch_pointer = transaction.branchTransactionPointer;
+                tx_summary.arrivalTime = transaction.arrivalTime;
+                tx_summary.currentIndex = transaction.currentIndex;
+                System.arraycopy(transaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
+                TipsManager.transactionSummaryTable.put(pointer, tx_summary);
+            }
+            pointer += AbstractStorage.CELL_SIZE;
+        }
+        log.info("Loading transaction summaries has finished");
+        
         (new Thread(() -> {
             
             final SecureRandom rnd = new SecureRandom();
@@ -139,21 +177,27 @@ public class TipsManager {
 
                         numberOfAnalyzedTransactions++;
 
-                        final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-                        if (transaction.type == Storage.PREFILLED_SLOT) {
+                        //final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                        final TransactionSummary transactionSummary = transactionSummaryTable.get(pointer);
+                        //if (transaction.type == Storage.PREFILLED_SLOT) {
+                        if (transactionSummary == null) {
 
                             return null;
 
                         } else {
 
-                            if (transaction.currentIndex == 0) {
+                            if (transactionSummary.currentIndex == 0) {
 
                                 boolean validBundle = false;
 
-                                final Bundle bundle = new Bundle(transaction.bundle);
+                                Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
+                                if ( bundle == null ) {
+                                    bundle = new Bundle(transactionSummary.bundle);
+                                    bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);                                    
+                                }
                                 for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
 
-                                    if (bundleTransactions.get(0).pointer == transaction.pointer) {
+                                    if (bundleTransactions.get(0).pointer == pointer) {
 
                                         validBundle = true;
 
@@ -173,16 +217,19 @@ public class TipsManager {
                                 }
 
                                 if (!validBundle) {
-
+                                    bundleTable.remove(ByteBuffer.wrap(transactionSummary.bundle));
                                     return null;
                                 }
                             }
 
-                            final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
-                            long branchArrivalTime = branchTransaction.arrivalTime;
+                            final TransactionSummary branchTransactionSummary = transactionSummaryTable.get(transactionSummary.branch_pointer);
+                            //final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
+                            if (branchTransactionSummary != null) {
+                                long branchArrivalTime = branchTransactionSummary.arrivalTime;
                             if (branchArrivalTime >= criticalArrivalTime) {
-                                nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
-                                nonAnalyzedTransactions.offer(transaction.branchTransactionPointer);
+                                nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
+                                nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
+                                }
                             }
 
                         }
@@ -349,7 +396,11 @@ public class TipsManager {
                                 .loadTransaction(extraTransactionPointer);
                         if (transaction.currentIndex == 0) {
 
-                            final Bundle bundle = new Bundle(transaction.bundle);
+                            Bundle bundle = bundleTable.get(ByteBuffer.wrap(transaction.bundle));
+                            if ( bundle == null ) {
+                                bundle = new Bundle(transaction.bundle);
+                                bundleTable.put(ByteBuffer.wrap(transaction.bundle), bundle);                                    
+                            }
                             for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
 
                                 if (bundleTransactions.get(0).pointer == transaction.pointer) {
@@ -491,3 +542,4 @@ public class TipsManager {
     
     private static TipsManager instance = new TipsManager();
 }
+

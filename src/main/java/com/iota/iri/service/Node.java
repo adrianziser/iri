@@ -219,7 +219,17 @@ public class Node {
                                     long timestamp = (int) Converter.longValue(receivedTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
                                     if (timestamp > TIMESTAMP_THRESHOLD) {
                                         if ((pointer = StorageTransactions.instance().storeTransaction(receivedTransaction.hash, receivedTransaction, false)) != 0L) {
-                                            StorageTransactions.instance().setArrivalTime(pointer, System.currentTimeMillis() / 1000L);
+                                            long arrivalTime = System.currentTimeMillis() / 1000L;
+                                            StorageTransactions.instance().setArrivalTime(pointer, arrivalTime);
+                                            TipsManager.TransactionSummary tx_summary = TipsManager.instance().new TransactionSummary();
+                                            tx_summary.tx_hash = new Hash(receivedTransaction.hash, 0, Transaction.HASH_SIZE);
+                                            tx_summary.tx_address = new Hash(receivedTransaction.address);
+                                            tx_summary.trunk_pointer = receivedTransaction.trunkTransactionPointer;
+                                            tx_summary.branch_pointer = receivedTransaction.branchTransactionPointer;
+                                            tx_summary.arrivalTime = arrivalTime;
+                                            tx_summary.currentIndex = receivedTransaction.currentIndex;
+                                            System.arraycopy(receivedTransaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
+                                            TipsManager.transactionSummaryTable.put(pointer, tx_summary);
                                             neighbor.incNewTransactions();
                                             broadcast(receivedTransaction);
                                         }
