@@ -175,7 +175,7 @@ public class TipsManager {
                         .instance().transactionPointer((extraTip == null ? preferableMilestone : extraTip).bytes())));
                 Long pointer;
                 while ((pointer = nonAnalyzedTransactions.poll()) != null) {
-
+log.info("pointer={}",pointer);
                     if (setAnalyzedTransactionFlag(pointer)) {
 
                         numberOfAnalyzedTransactions++;
