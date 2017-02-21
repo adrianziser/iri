@@ -238,6 +238,7 @@ log.info("Did not find {}",pointer);
                             */
                             nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
                             nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
+log.info("offered");                            
                         }
                     }
                 }
