@@ -74,9 +74,11 @@ public class TipsManager {
         // Fill the runtime tangle objects
         long pointer = AbstractStorage.CELLS_OFFSET - AbstractStorage.SUPER_GROUPS_OFFSET;
         log.info("Loading transaction summaries");
+        int txCounter = 0;
         while (pointer < StorageTransactions.transactionsNextPointer) {
             Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-            if (transaction.type == Storage.PREFILLED_SLOT) {
+            if (transaction.type != Storage.PREFILLED_SLOT) {
+                txCounter++;
                 TipsManager.TransactionSummary tx_summary = TipsManager.instance().new TransactionSummary();
                 tx_summary.tx_hash = new Hash(transaction.hash, 0, Transaction.HASH_SIZE);
                 tx_summary.tx_address = new Hash(transaction.address);
@@ -90,7 +92,7 @@ public class TipsManager {
             }
             pointer += AbstractStorage.CELL_SIZE;
         }
-        log.info("Loading transaction summaries has finished");
+        log.info("Loading transaction summaries has finished, txCounter = {}",txCounter);
         
         (new Thread(() -> {
             
