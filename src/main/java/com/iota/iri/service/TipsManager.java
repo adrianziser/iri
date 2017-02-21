@@ -92,7 +92,7 @@ public class TipsManager {
             }
             pointer += AbstractStorage.CELL_SIZE;
         }
-        log.info("Loading transaction summaries has finished, txCounter = {}",txCounter);
+        log.info("Loading transaction summaries has finished, txCounter = {}  {}",txCounter,TipsManager.transactionSummaryTable.size());
         
         (new Thread(() -> {
             
@@ -184,7 +184,7 @@ public class TipsManager {
                         final TransactionSummary transactionSummary = transactionSummaryTable.get(pointer);
                         //if (transaction.type == Storage.PREFILLED_SLOT) {
                         if (transactionSummary == null) {
-
+log.info("Did not find {}",pointer);
                             return null;
 
                         } else {
