@@ -214,31 +214,28 @@ public class TipsManager {
                                 Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
                                 if ( bundle == null ) {
                                     Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);                                    
-                                    if (!Arrays.equals(transaction.bundle, voidBundle)) {  
-                                        log.info(bytesToHex(transaction.bundle));
-                                        System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
-                                        bundle = new Bundle(transactionSummary.bundle);
-                                        bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);
+                                    log.info(bytesToHex(transaction.bundle));
+                                    System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
+                                    bundle = new Bundle(transactionSummary.bundle);
+                                    bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);                                        
+                                }
+                                for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
 
-                                        for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
+                                    if (bundleTransactions.get(0).pointer == pointer) {
 
-                                            if (bundleTransactions.get(0).pointer == pointer) {
+                                        validBundle = true;
 
-                                                validBundle = true;
+                                        for (final Transaction bundleTransaction : bundleTransactions) {
 
-                                                for (final Transaction bundleTransaction : bundleTransactions) {
-
-                                                    if (bundleTransaction.value != 0) {
-                                                        
-                                                        final Hash address = new Hash(bundleTransaction.address);
-                                                        final Long value = state.get(address);
-                                                        state.put(address, value == null ? bundleTransaction.value : (value + bundleTransaction.value));
-                                                    }
-                                                }
-
-                                                break;
+                                            if (bundleTransaction.value != 0) {
+                                                
+                                                final Hash address = new Hash(bundleTransaction.address);
+                                                final Long value = state.get(address);
+                                                state.put(address, value == null ? bundleTransaction.value : (value + bundleTransaction.value));
                                             }
                                         }
+
+                                        break;
                                     }
                                 }
 
