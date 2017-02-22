@@ -2,6 +2,7 @@ package com.iota.iri.service;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.iota.iri.Bundle;
 import com.iota.iri.Milestone;
 import com.iota.iri.Snapshot;
+import com.iota.iri.hash.Curl;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
 import com.iota.iri.service.TipsManager.TransactionSummary;
@@ -40,6 +42,8 @@ public class TipsManager {
     static boolean shuttingDown;
 
     static int numberOfConfirmedTransactions;
+    
+    static final byte[] voidBundle = new byte[Transaction.BUNDLE_SIZE];
 
     static final byte[] analyzedTransactionsFlags = new byte[134217728];
     static final byte[] analyzedTransactionsFlagsCopy = new byte[134217728];
@@ -53,6 +57,7 @@ public class TipsManager {
         long arrivalTime;
         long currentIndex;
         byte[] bundle;
+        boolean bundleUpdated;
     }
     
     static public Hashtable<Long,TransactionSummary> transactionSummaryTable = new Hashtable<>(200000);
@@ -99,6 +104,7 @@ public class TipsManager {
                 tx_summary.arrivalTime = transaction.arrivalTime;
                 tx_summary.currentIndex = transaction.currentIndex;
                 tx_summary.bundle = new byte[Transaction.BUNDLE_SIZE];
+                tx_summary.bundleUpdated = true;
                 System.arraycopy(transaction.bundle, 0, tx_summary.bundle, 0, Transaction.BUNDLE_SIZE);
                 TipsManager.transactionSummaryTable.put(pointer, tx_summary);
             }
@@ -196,29 +202,31 @@ public class TipsManager {
 
                                 Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
                                 if ( bundle == null ) {
-                                    Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-                                    System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
-                                    bundle = new Bundle(transactionSummary.bundle);
-                                    bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);                                    
-                                }
-                                for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
+                                    Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);                                    
+                                    if (!Arrays.equals(transaction.bundle, voidBundle)) {                                    
+                                        System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
+                                        bundle = new Bundle(transactionSummary.bundle);
+                                        bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);
 
-                                    if (bundleTransactions.get(0).pointer == pointer) {
+                                        for (final List<Transaction> bundleTransactions : bundle.getTransactions()) {
 
-                                        validBundle = true;
+                                            if (bundleTransactions.get(0).pointer == pointer) {
 
-                                        for (final Transaction bundleTransaction : bundleTransactions) {
+                                                validBundle = true;
 
-                                            if (bundleTransaction.value != 0) {
+                                                for (final Transaction bundleTransaction : bundleTransactions) {
 
-                                                final Hash address = new Hash(bundleTransaction.address);
-                                                final Long value = state.get(address);
-                                                state.put(address, value == null ? bundleTransaction.value
-                                                        : (value + bundleTransaction.value));
+                                                    if (bundleTransaction.value != 0) {
+                                                        
+                                                        final Hash address = new Hash(bundleTransaction.address);
+                                                        final Long value = state.get(address);
+                                                        state.put(address, value == null ? bundleTransaction.value : (value + bundleTransaction.value));
+                                                    }
+                                                }
+
+                                                break;
                                             }
                                         }
-
-                                        break;
                                     }
                                 }
 
