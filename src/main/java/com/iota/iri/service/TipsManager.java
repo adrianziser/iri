@@ -76,6 +76,17 @@ public class TipsManager {
         ARTIFICAL_LATENCY = value;
     }
     
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+    
     public void init() {
 
         // Fill the runtime tangle objects
@@ -203,7 +214,8 @@ public class TipsManager {
                                 Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
                                 if ( bundle == null ) {
                                     Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);                                    
-                                    if (!Arrays.equals(transaction.bundle, voidBundle)) {                                    
+                                    if (!Arrays.equals(transaction.bundle, voidBundle)) {  
+                                        log.info(bytesToHex(transaction.bundle));
                                         System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
                                         bundle = new Bundle(transactionSummary.bundle);
                                         bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);
