@@ -165,7 +165,6 @@ public class TipsManager {
                     break;
                 }
             }
-            log.info("criticalArrivalTime= {}",criticalArrivalTime);
             
             System.arraycopy(zeroedAnalyzedTransactionsFlags, 0, analyzedTransactionsFlags, 0, 134217728);
 
@@ -186,7 +185,7 @@ public class TipsManager {
                         TransactionSummary transactionSummary = transactionSummaryTable.get(pointer);
                         //if (transaction.type == Storage.PREFILLED_SLOT) {
                         if (transactionSummary == null) {
-log.info("Did not find {}",pointer);
+                            log.info("Did not find {}",pointer);
                             return null;
 
                         } else {
@@ -197,6 +196,8 @@ log.info("Did not find {}",pointer);
 
                                 Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
                                 if ( bundle == null ) {
+                                    Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                                    System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
                                     bundle = new Bundle(transactionSummary.bundle);
                                     bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);                                    
                                 }
@@ -226,19 +227,7 @@ log.info("Did not find {}",pointer);
                                     return null;
                                 }
                             }
-
-                            /*
-                            final TransactionSummary branchTransactionSummary = transactionSummaryTable.get(transactionSummary.branch_pointer);
-                            //final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
-                            if (branchTransactionSummary != null) {
-                                long branchArrivalTime = branchTransactionSummary.arrivalTime;
-                            if (branchArrivalTime >= criticalArrivalTime) {
-                                nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);
-                                nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
-                                }
-                            }
-                            */
-                            if (transactionSummary.trunk_pointer == 0) {
+                            if (transactionSummary.trunk_pointer == 0L || transactionSummary.branch_pointer == 0L) {
                                 Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
                                 transactionSummary.branch_pointer = transaction.branchTransactionPointer;
                                 transactionSummary.trunk_pointer = transaction.trunkTransactionPointer;
