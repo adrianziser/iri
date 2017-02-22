@@ -59,6 +59,8 @@ public class TipsManager {
     
     static public Hashtable<ByteBuffer,Bundle> bundleTable = new Hashtable<>(200000);
     
+    static public Hashtable<Integer,Long> milestoneArrivalTimeTable = new Hashtable<>(10000);
+    
     public static void setRATING_THRESHOLD(int value) {
         if (value < 0) value = 0;
         if (value > 100) value = 100;
@@ -72,6 +74,16 @@ public class TipsManager {
     public void init() {
 
         // Fill the runtime tangle objects
+        
+        for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
+            final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+            if (transaction.currentIndex == 0) {
+                int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET, 15);
+                long itsArrivalTime = transaction.arrivalTime;
+                milestoneArrivalTimeTable.put(milestoneIndex, itsArrivalTime);
+            }
+        }
+        
         long pointer = AbstractStorage.CELLS_OFFSET - AbstractStorage.SUPER_GROUPS_OFFSET;
         log.info("Loading transaction summaries");
         int txCounter = 0;
@@ -146,23 +158,14 @@ public class TipsManager {
         long criticalArrivalTime = Long.MAX_VALUE;
         
         try {
-            for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
-                final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-                if (transaction.currentIndex == 0) {
-                    int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET,
-                            15);
-                    if (milestoneIndex >= oldestAcceptableMilestoneIndex) {
-                        long itsArrivalTime = transaction.arrivalTime;
-                        final long timestamp = (int) Converter.longValue(transaction.trits(),
-                                Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
-                        if (itsArrivalTime == 0)
-                            itsArrivalTime = timestamp;
-                        if (itsArrivalTime < criticalArrivalTime) {
-                            criticalArrivalTime = itsArrivalTime;
-                        }
-                    }
+            Long ts;
+            for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
+                if ( (ts = milestoneArrivalTimeTable.get(idx)) != null ) {
+                    criticalArrivalTime = ts; 
+                    break;
                 }
             }
+            log.info("criticalArrivalTime= {}",criticalArrivalTime);
             
             System.arraycopy(zeroedAnalyzedTransactionsFlags, 0, analyzedTransactionsFlags, 0, 134217728);
 
@@ -175,7 +178,6 @@ public class TipsManager {
                         .instance().transactionPointer((extraTip == null ? preferableMilestone : extraTip).bytes())));
                 Long pointer;
                 while ((pointer = nonAnalyzedTransactions.poll()) != null) {
-//log.info("pointer={}",pointer);
                     if (setAnalyzedTransactionFlag(pointer)) {
 
                         numberOfAnalyzedTransactions++;
@@ -291,8 +293,7 @@ log.info("Did not find {}",pointer);
                     tip = transaction.pointer;
                     do {
 
-                        transaction = StorageTransactions.instance()
-                                .loadTransaction(transaction.trunkTransactionPointer);
+                        transaction = StorageTransactions.instance().loadTransaction(transaction.trunkTransactionPointer);
 
                     } while (transaction.currentIndex != 0);
                 }

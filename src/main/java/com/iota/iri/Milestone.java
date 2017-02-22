@@ -13,6 +13,7 @@ import com.iota.iri.hash.Curl;
 import com.iota.iri.hash.ISS;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
+import com.iota.iri.service.TipsManager;
 import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.StorageAddresses;
 import com.iota.iri.service.storage.StorageScratchpad;
@@ -52,7 +53,7 @@ public class Milestone {
 
                     final int index = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET, 15);
                     final long timestamp = (int) Converter.longValue(transaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
-                   
+                    
                     if ((now - timestamp) < 7200L && index > latestMilestoneIndex) {
 
                         final Bundle bundle = new Bundle(transaction.bundle);
@@ -145,6 +146,7 @@ public class Milestone {
                 if (solid) {
                     latestSolidSubtangleMilestone = milestone;
                     latestSolidSubtangleMilestoneIndex = milestoneIndex;
+                    TipsManager.milestoneArrivalTimeTable.put(latestSolidSubtangleMilestoneIndex, System.currentTimeMillis() / 1000L);
                     return;
                 }
             }
