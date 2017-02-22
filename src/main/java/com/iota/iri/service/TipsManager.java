@@ -244,13 +244,15 @@ public class TipsManager {
                                     return null;
                                 }
                             }
-                            if (transactionSummary.trunk_pointer == 0L || transactionSummary.branch_pointer == 0L) {
-                                Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
-                                transactionSummary.branch_pointer = transaction.branchTransactionPointer;
-                                transactionSummary.trunk_pointer = transaction.trunkTransactionPointer;
+                            if ( transactionSummary.arrivalTime >= criticalArrivalTime ) {
+                                if (transactionSummary.trunk_pointer == 0L || transactionSummary.branch_pointer == 0L) {
+                                    Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                                    transactionSummary.branch_pointer = transaction.branchTransactionPointer;
+                                    transactionSummary.trunk_pointer = transaction.trunkTransactionPointer;
+                                }
+                                nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);                                
+                                nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
                             }
-                            nonAnalyzedTransactions.offer(transactionSummary.trunk_pointer);                                
-                            nonAnalyzedTransactions.offer(transactionSummary.branch_pointer);
                                               
                         }
                     }
