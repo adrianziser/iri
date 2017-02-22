@@ -106,7 +106,7 @@ public class TipsManager {
         
         try {
             for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
-                final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
                 if (transaction.currentIndex == 0) {
                     int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET,
                             15);
@@ -139,7 +139,7 @@ public class TipsManager {
 
                         numberOfAnalyzedTransactions++;
 
-                        final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                        final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
                         if (transaction.type == Storage.PREFILLED_SLOT) {
 
                             return null;
@@ -178,7 +178,7 @@ public class TipsManager {
                                 }
                             }
 
-                            final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
+                            final Transaction branchTransaction = StorageTransactions.instance().loadTransactionNL(transaction.branchTransactionPointer);
                             long branchArrivalTime = branchTransaction.arrivalTime;
                             if (branchArrivalTime >= criticalArrivalTime) {
                                 nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
@@ -226,14 +226,14 @@ public class TipsManager {
             long tip = StorageTransactions.instance().transactionPointer(preferableMilestone.bytes());
             if (extraTip != null) {
 
-                Transaction transaction = StorageTransactions.instance().loadTransaction(tip);
+                Transaction transaction = StorageTransactions.instance().loadTransactionNL(tip);
                 while (depth-- > 0 && tip != Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET) {
 
                     tip = transaction.pointer;
                     do {
 
-                        transaction = StorageTransactions.instance()
-                                .loadTransaction(transaction.trunkTransactionPointer);
+                        transaction = StorageTransactions.instance().
+                                loadTransactionNL(transaction.trunkTransactionPointer);
 
                     } while (transaction.currentIndex != 0);
                 }
@@ -246,7 +246,7 @@ public class TipsManager {
 
                 if (setAnalyzedTransactionFlag(pointer)) {
 
-                    final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                    final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
 
                     if (transaction.currentIndex == 0 && !tailsToAnalyze.contains(transaction.pointer)) {
 
@@ -319,7 +319,7 @@ public class TipsManager {
 
                     if (setAnalyzedTransactionFlag(pointer)) {
 
-                        final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+                        final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
                         if (transaction.type == Storage.PREFILLED_SLOT) {
 
                             // -- Coo only--
@@ -346,7 +346,7 @@ public class TipsManager {
                     for (final Long extraTransactionPointer : extraTransactions) {
 
                         final Transaction transaction = StorageTransactions.instance()
-                                .loadTransaction(extraTransactionPointer);
+                                .loadTransactionNL(extraTransactionPointer);
                         if (transaction.currentIndex == 0) {
 
                             final Bundle bundle = new Bundle(transaction.bundle);
@@ -388,7 +388,7 @@ public class TipsManager {
                         for (final Long extraTransactionPointer : extraTransactions) {
 
                             final Transaction transaction = StorageTransactions.instance()
-                                    .loadTransaction(extraTransactionPointer);
+                                    .loadTransactionNL(extraTransactionPointer);
                             if (transaction.value != 0) {
 
                                 final Hash address = new Hash(transaction.address);
@@ -410,12 +410,12 @@ public class TipsManager {
                         if (!extraTransactions.isEmpty()) {
 
                             // --Coo only--
-                            // bestTip = new Hash(Storage.loadTransaction(tailPointer).hash, 0, Transaction.HASH_SIZE);
+                            // bestTip = new Hash(Storage.(tailPointer).hash, 0, Transaction.HASH_SIZE);
                             // bestRating = extraTransactions.size();
                             // seenTails.addAll(extraTransactions);
 
                             /**/tailsRaitings
-                                    .put(new Hash(StorageTransactions.instance().loadTransaction(tailPointer).hash, 0,
+                                    .put(new Hash(StorageTransactions.instance().loadTransactionNL(tailPointer).hash, 0,
                                             Transaction.HASH_SIZE), extraTransactions.size());
                             /**/if (extraTransactions.size() > bestRating) {
                                 /**/

@@ -137,12 +137,17 @@ public class StorageTransactions extends AbstractStorage {
         }
         throw new IllegalStateException("Corrupted storage");
     }
-
+    
     public Transaction loadTransaction(final long pointer) {
         synchronized (Storage.class) {
             ((ByteBuffer)transactionsChunks[(int)(pointer >> 27)].position((int)(pointer & (CHUNK_SIZE - 1)))).get(mainBuffer);            
             return new Transaction(mainBuffer, pointer);
     	}
+    }
+    
+    public Transaction loadTransactionNL(final long pointer) {
+        ((ByteBuffer)transactionsChunks[(int)(pointer >> 27)].position((int)(pointer & (CHUNK_SIZE - 1)))).get(mainBuffer);            
+        return new Transaction(mainBuffer, pointer);
     }
 
     public Transaction loadTransaction(final byte[] hash) {
@@ -150,6 +155,11 @@ public class StorageTransactions extends AbstractStorage {
             final long pointer = transactionPointer(hash);
             return pointer > 0 ? loadTransaction(pointer) : null;
         }
+    }
+    
+    public Transaction loadTransactionNL(final byte[] hash) {
+        final long pointer = transactionPointer(hash);
+        return pointer > 0 ? loadTransaction(pointer) : null;
     }
     
     public void setTransactionValidity(final long pointer, final int validity) {
