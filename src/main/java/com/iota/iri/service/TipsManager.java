@@ -184,9 +184,14 @@ public class TipsManager {
             for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
                 MilestoneSummary milestoneSummary = milestoneSummaryTable.get(idx);
                 if ( milestoneSummary != null ) {
-                    criticalArrivalTime = milestoneSummary.arrivalTime; 
-                    break;
+                    if (milestoneSummary.arrivalTime != 0) {
+                        criticalArrivalTime = milestoneSummary.arrivalTime; 
+                        break;
+                    }
                 }
+            }
+            if (criticalArrivalTime == 0L ) {
+                criticalArrivalTime = System.currentTimeMillis() / 1000 - 120;
             }
             
             System.arraycopy(zeroedAnalyzedTransactionsFlags, 0, analyzedTransactionsFlags, 0, 134217728);
