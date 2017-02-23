@@ -20,6 +20,7 @@ import com.iota.iri.Milestone;
 import com.iota.iri.Snapshot;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
+import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.Storage;
 import com.iota.iri.service.storage.StorageAddresses;
 import com.iota.iri.service.storage.StorageApprovers;
@@ -39,6 +40,7 @@ public class TipsManager {
     static int numberOfConfirmedTransactions;
 
     static public Hashtable<Integer,Long> milestoneArrivalTimeTable = new Hashtable<>(10000);
+    static public Hashtable<Long,Long> txArrivalTimeTable = new Hashtable<>(300000);
     
     static final byte[] analyzedTransactionsFlags = new byte[134217728];
     static final byte[] analyzedTransactionsFlagsCopy = new byte[134217728];
@@ -69,6 +71,20 @@ public class TipsManager {
                 milestoneArrivalTimeTable.put(milestoneIndex, itsArrivalTime);
             }
         }
+        
+        long pointer = AbstractStorage.CELLS_OFFSET - AbstractStorage.SUPER_GROUPS_OFFSET;
+        log.info("Loading transaction summaries");
+        int txCounter = 0;
+        while (pointer < StorageTransactions.transactionsNextPointer) {
+            Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+            if (transaction.type != Storage.PREFILLED_SLOT) {
+                txCounter++;
+                Long itsArrivalTime = Converter.longValue(transaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                TipsManager.txArrivalTimeTable.put(pointer, itsArrivalTime);
+            }
+            pointer += AbstractStorage.CELL_SIZE;
+        }
+        log.info("Loading transaction summaries has finished, txCounter = {}  {}",txCounter,TipsManager.txArrivalTimeTable.size());
         
         (new Thread(() -> {
             
@@ -146,7 +162,7 @@ public class TipsManager {
 
                         numberOfAnalyzedTransactions++;
 
-                        final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
+                        final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
                         if (transaction.type == Storage.PREFILLED_SLOT) {
 
                             return null;
@@ -185,7 +201,7 @@ public class TipsManager {
                                 }
                             }
 
-                            final Transaction branchTransaction = StorageTransactions.instance().loadTransactionNL(transaction.branchTransactionPointer);
+                            final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
                             long branchArrivalTime = branchTransaction.arrivalTime;
                             if (branchArrivalTime >= criticalArrivalTime) {
                                 nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
@@ -233,14 +249,14 @@ public class TipsManager {
             long tip = StorageTransactions.instance().transactionPointer(preferableMilestone.bytes());
             if (extraTip != null) {
 
-                Transaction transaction = StorageTransactions.instance().loadTransactionNL(tip);
+                Transaction transaction = StorageTransactions.instance().loadTransaction(tip);
                 while (depth-- > 0 && tip != Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET) {
 
                     tip = transaction.pointer;
                     do {
 
                         transaction = StorageTransactions.instance().
-                                loadTransactionNL(transaction.trunkTransactionPointer);
+                                loadTransaction(transaction.trunkTransactionPointer);
 
                     } while (transaction.currentIndex != 0);
                 }
@@ -253,7 +269,7 @@ public class TipsManager {
 
                 if (setAnalyzedTransactionFlag(pointer)) {
 
-                    final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
+                    final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
 
                     if (transaction.currentIndex == 0 && !tailsToAnalyze.contains(transaction.pointer)) {
 
@@ -326,7 +342,7 @@ public class TipsManager {
 
                     if (setAnalyzedTransactionFlag(pointer)) {
 
-                        final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
+                        final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
                         if (transaction.type == Storage.PREFILLED_SLOT) {
 
                             // -- Coo only--
@@ -353,7 +369,7 @@ public class TipsManager {
                     for (final Long extraTransactionPointer : extraTransactions) {
 
                         final Transaction transaction = StorageTransactions.instance()
-                                .loadTransactionNL(extraTransactionPointer);
+                                .loadTransaction(extraTransactionPointer);
                         if (transaction.currentIndex == 0) {
 
                             final Bundle bundle = new Bundle(transaction.bundle);
@@ -361,12 +377,16 @@ public class TipsManager {
 
                                 if (bundleTransactions.get(0).pointer == transaction.pointer) {
 
-                                    for (final Transaction bundleTransaction : bundleTransactions) {
+                                    for (final Transaction bundleTransaction : bundleTransactions) {                                        
                                         
-                                        long itsArrivalTime = bundleTransaction.arrivalTime;
-                                        if (itsArrivalTime == 0)
+                                        long itsArrivalTime = 0L;
+                                        Long time = TipsManager.txArrivalTimeTable.get(transaction.pointer);
+                                        if (time != null) itsArrivalTime = time.longValue();
+                                        
+                                        if (itsArrivalTime == 0L) {                                            
                                             itsArrivalTime = (int) Converter.longValue(bundleTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
-
+                                            log.info("Arrival time not in cache!");
+                                        }
                                         if (itsArrivalTime < criticalArrivalTime) {
                                             extraTransactionsCopy = null;
                                             break;
@@ -395,7 +415,7 @@ public class TipsManager {
                         for (final Long extraTransactionPointer : extraTransactions) {
 
                             final Transaction transaction = StorageTransactions.instance()
-                                    .loadTransactionNL(extraTransactionPointer);
+                                    .loadTransaction(extraTransactionPointer);
                             if (transaction.value != 0) {
 
                                 final Hash address = new Hash(transaction.address);
@@ -422,7 +442,7 @@ public class TipsManager {
                             // seenTails.addAll(extraTransactions);
 
                             /**/tailsRaitings
-                                    .put(new Hash(StorageTransactions.instance().loadTransactionNL(tailPointer).hash, 0,
+                                    .put(new Hash(StorageTransactions.instance().loadTransaction(tailPointer).hash, 0,
                                             Transaction.HASH_SIZE), extraTransactions.size());
                             /**/if (extraTransactions.size() > bestRating) {
                                 /**/
