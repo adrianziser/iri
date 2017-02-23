@@ -315,6 +315,7 @@ public class TipsManager {
                     do {
                         tip = transactionSummary.trunk_pointer;     
                         transactionSummary = transactionSummaryTable.get(transactionSummary.trunk_pointer);
+                        if (transactionSummary == null) break;
                         //transaction = StorageTransactions.instance().loadTransaction(transaction.trunkTransactionPointer);
                     } while (transactionSummary.currentIndex != 0);
                 }
