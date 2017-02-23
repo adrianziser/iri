@@ -567,6 +567,8 @@ public class TipsManager {
     }
 
     private static boolean setAnalyzedTransactionFlag(long pointer) {
+        
+        if (pointer == 0L)  return false;
 
         pointer -= Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET;
 
