@@ -298,24 +298,24 @@ public class TipsManager {
 
             final List<Long> tailsToAnalyze = new LinkedList<>();
 
-            /*
-            long tip = StorageTransactions.instance().transactionPointer(preferableMilestone.bytes());
+            
+            long tip = StorageTransactions.instance().transactionPointer(preferableMilestone.bytes());            
             if (extraTip != null) {
 
-                Transaction transaction = StorageTransactions.instance().loadTransaction(tip);
-                while (depth-- > 0 && tip != Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET) {
-
-                    tip = transaction.pointer;
+                //Transaction transaction = StorageTransactions.instance().loadTransaction(tip);
+                TransactionSummary transactionSummary = transactionSummaryTable.get(tip);
+                //while (depth-- > 0 && tip != Storage.CELLS_OFFSET - Storage.SUPER_GROUPS_OFFSET) {
+                while (depth-- > 0) {
+                    //tip = transaction.pointer;                    
                     do {
-
-                        transaction = StorageTransactions.instance().loadTransaction(transaction.trunkTransactionPointer);
-
-                    } while (transaction.currentIndex != 0);
+                        tip = transactionSummary.trunk_pointer;     
+                        transactionSummary = transactionSummaryTable.get(transactionSummary.trunk_pointer);
+                        //transaction = StorageTransactions.instance().loadTransaction(transaction.trunkTransactionPointer);
+                    } while (transactionSummary.currentIndex != 0);
                 }
             }
-            */
             
-            long tip = 0L;
+            /*
             for (int idx=Milestone.latestSolidSubtangleMilestoneIndex-1; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
                 MilestoneSummary milestoneSummary = milestoneSummaryTable.get(idx);
                 if ( milestoneSummary != null ) {
@@ -326,6 +326,7 @@ public class TipsManager {
             if ( tip == 0L ) {
                 throw new RuntimeException("No milestone at depth!");
             }
+            */
             
             final Queue<Long> nonAnalyzedTransactions = new LinkedList<>(Collections.singleton(tip));
             Long pointer;
