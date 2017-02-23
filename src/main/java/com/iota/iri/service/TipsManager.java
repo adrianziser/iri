@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,6 +38,8 @@ public class TipsManager {
 
     static int numberOfConfirmedTransactions;
 
+    static public Hashtable<Integer,Long> milestoneArrivalTimeTable = new Hashtable<>(10000);
+    
     static final byte[] analyzedTransactionsFlags = new byte[134217728];
     static final byte[] analyzedTransactionsFlagsCopy = new byte[134217728];
     static final byte[] zeroedAnalyzedTransactionsFlags = new byte[134217728];
@@ -53,6 +56,20 @@ public class TipsManager {
     
     public void init() {
 
+        // Get the milestone arrival times
+        for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
+            final Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);
+            if (transaction.currentIndex == 0) {
+                int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET, 15);
+                long itsArrivalTime = transaction.arrivalTime;
+                if (itsArrivalTime == 0L) {
+                    // compatibility with old dbs
+                    itsArrivalTime = (int) Converter.longValue(transaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
+                }
+                milestoneArrivalTimeTable.put(milestoneIndex, itsArrivalTime);
+            }
+        }
+        
         (new Thread(() -> {
             
             final SecureRandom rnd = new SecureRandom();
@@ -105,21 +122,11 @@ public class TipsManager {
         long criticalArrivalTime = Long.MAX_VALUE;
         
         try {
-            for (final Long pointer : StorageAddresses.instance().addressesOf(Milestone.COORDINATOR)) {
-                final Transaction transaction = StorageTransactions.instance().loadTransactionNL(pointer);
-                if (transaction.currentIndex == 0) {
-                    int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET,
-                            15);
-                    if (milestoneIndex >= oldestAcceptableMilestoneIndex) {
-                        long itsArrivalTime = transaction.arrivalTime;
-                        final long timestamp = (int) Converter.longValue(transaction.trits(),
-                                Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
-                        if (itsArrivalTime == 0)
-                            itsArrivalTime = timestamp;
-                        if (itsArrivalTime < criticalArrivalTime) {
-                            criticalArrivalTime = itsArrivalTime;
-                        }
-                    }
+            Long ts;
+            for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
+                if ( (ts = milestoneArrivalTimeTable.get(idx)) != null ) {
+                    criticalArrivalTime = ts; 
+                    break;
                 }
             }
             
