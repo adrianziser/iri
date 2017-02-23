@@ -201,9 +201,12 @@ public class TipsManager {
                                 }
                             }
 
-                            final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
-                            long branchArrivalTime = branchTransaction.arrivalTime;
-                            if (branchArrivalTime >= criticalArrivalTime) {
+                            //final Transaction branchTransaction = StorageTransactions.instance().loadTransaction(transaction.branchTransactionPointer);
+                            //long branchArrivalTime = branchTransaction.arrivalTime;
+                            long itsArrivalTime = 0L;
+                            Long time = TipsManager.txArrivalTimeTable.get(transaction.pointer);
+                            if (time != null) itsArrivalTime = time.longValue();
+                            if (itsArrivalTime >= criticalArrivalTime) {
                                 nonAnalyzedTransactions.offer(transaction.trunkTransactionPointer);
                                 nonAnalyzedTransactions.offer(transaction.branchTransactionPointer);
                             }
