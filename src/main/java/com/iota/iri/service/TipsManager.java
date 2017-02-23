@@ -316,7 +316,7 @@ public class TipsManager {
             */
             
             long tip = 0L;
-            for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
+            for (int idx=Milestone.latestSolidSubtangleMilestoneIndex-1; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
                 MilestoneSummary milestoneSummary = milestoneSummaryTable.get(idx);
                 if ( milestoneSummary != null ) {
                     tip = milestoneSummary.pointer; 
