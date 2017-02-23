@@ -2,7 +2,6 @@ package com.iota.iri.service;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,10 +19,8 @@ import org.slf4j.LoggerFactory;
 import com.iota.iri.Bundle;
 import com.iota.iri.Milestone;
 import com.iota.iri.Snapshot;
-import com.iota.iri.hash.Curl;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.Transaction;
-import com.iota.iri.service.TipsManager.TransactionSummary;
 import com.iota.iri.service.storage.AbstractStorage;
 import com.iota.iri.service.storage.Storage;
 import com.iota.iri.service.storage.StorageAddresses;
@@ -60,11 +57,16 @@ public class TipsManager {
         boolean bundleUpdated;
     }
     
+    public class MilestoneSummary {
+        public long arrivalTime;
+        public long pointer;
+    }
+    
     static public Hashtable<Long,TransactionSummary> transactionSummaryTable = new Hashtable<>(200000);
     
     static public Hashtable<ByteBuffer,Bundle> bundleTable = new Hashtable<>(200000);
     
-    static public Hashtable<Integer,Long> milestoneArrivalTimeTable = new Hashtable<>(10000);
+    static public Hashtable<Integer,MilestoneSummary> milestoneSummaryTable = new Hashtable<>(10000);
     
     public static void setRATING_THRESHOLD(int value) {
         if (value < 0) value = 0;
@@ -96,7 +98,10 @@ public class TipsManager {
             if (transaction.currentIndex == 0) {
                 int milestoneIndex = (int) Converter.longValue(transaction.trits(), Transaction.TAG_TRINARY_OFFSET, 15);
                 long itsArrivalTime = transaction.arrivalTime;
-                milestoneArrivalTimeTable.put(milestoneIndex, itsArrivalTime);
+                MilestoneSummary milestoneSummary = new MilestoneSummary();
+                milestoneSummary.arrivalTime = itsArrivalTime;
+                milestoneSummary.pointer = pointer;
+                milestoneSummaryTable.put(milestoneIndex, milestoneSummary);
             }
         }
         
@@ -175,10 +180,11 @@ public class TipsManager {
         long criticalArrivalTime = Long.MAX_VALUE;
         
         try {
-            Long ts;
+
             for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
-                if ( (ts = milestoneArrivalTimeTable.get(idx)) != null ) {
-                    criticalArrivalTime = ts; 
+                MilestoneSummary milestoneSummary = milestoneSummaryTable.get(idx);
+                if ( milestoneSummary != null ) {
+                    criticalArrivalTime = milestoneSummary.arrivalTime; 
                     break;
                 }
             }
@@ -214,7 +220,7 @@ public class TipsManager {
                                 Bundle bundle = bundleTable.get(ByteBuffer.wrap(transactionSummary.bundle));
                                 if ( bundle == null ) {
                                     Transaction transaction = StorageTransactions.instance().loadTransaction(pointer);                                    
-                                    log.info(bytesToHex(transaction.bundle));
+                                    //log.info(bytesToHex(transaction.bundle));
                                     System.arraycopy(transaction.bundle, 0, transactionSummary.bundle, 0, Transaction.BUNDLE_SIZE);
                                     bundle = new Bundle(transactionSummary.bundle);
                                     bundleTable.put(ByteBuffer.wrap(transactionSummary.bundle), bundle);                                        
@@ -258,7 +264,7 @@ public class TipsManager {
                     }
                 }
                 
-                log.info("Confirmed transactions = " + numberOfAnalyzedTransactions);
+                log.info("Analyzed transactions = " + numberOfAnalyzedTransactions);
                 if (extraTip == null) {
                     numberOfConfirmedTransactions = numberOfAnalyzedTransactions;
                 }
@@ -292,6 +298,7 @@ public class TipsManager {
 
             final List<Long> tailsToAnalyze = new LinkedList<>();
 
+            /*
             long tip = StorageTransactions.instance().transactionPointer(preferableMilestone.bytes());
             if (extraTip != null) {
 
@@ -305,6 +312,19 @@ public class TipsManager {
 
                     } while (transaction.currentIndex != 0);
                 }
+            }
+            */
+            
+            long tip = 0L;
+            for (int idx=oldestAcceptableMilestoneIndex; idx <= Milestone.latestSolidSubtangleMilestoneIndex; idx++) {
+                MilestoneSummary milestoneSummary = milestoneSummaryTable.get(idx);
+                if ( milestoneSummary != null ) {
+                    tip = milestoneSummary.pointer; 
+                    break;
+                }
+            }
+            if ( tip == 0L ) {
+                throw new RuntimeException("No milestone at depth!");
             }
             
             final Queue<Long> nonAnalyzedTransactions = new LinkedList<>(Collections.singleton(tip));
@@ -331,9 +351,7 @@ public class TipsManager {
 
                     } else {
 
-                        for (final Long approverPointer : StorageApprovers.instance()
-                                .approveeTransactions(approveePointer)) {
-
+                        for (final Long approverPointer : StorageApprovers.instance().approveeTransactions(approveePointer)) {
                             nonAnalyzedTransactions.offer(approverPointer);
                         }
                     }

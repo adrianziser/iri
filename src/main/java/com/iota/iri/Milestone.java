@@ -112,6 +112,7 @@ public class Milestone {
 
     public static void updateLatestSolidSubtangleMilestone() {
 
+        Long solidMilestonePointer = 0L;
         for (int milestoneIndex = latestMilestoneIndex; milestoneIndex > latestSolidSubtangleMilestoneIndex; milestoneIndex--) {
 
             final Hash milestone = milestones.get(milestoneIndex);
@@ -124,7 +125,8 @@ public class Milestone {
                 	StorageScratchpad.instance().clearAnalyzedTransactionsFlags();
 
                     final Queue<Long> nonAnalyzedTransactions = new LinkedList<>();
-                    nonAnalyzedTransactions.offer(StorageTransactions.instance().transactionPointer(milestone.bytes()));
+                    solidMilestonePointer = StorageTransactions.instance().transactionPointer(milestone.bytes());
+                    nonAnalyzedTransactions.offer(solidMilestonePointer);
                     Long pointer;
                     while ((pointer = nonAnalyzedTransactions.poll()) != null) {
 
@@ -146,7 +148,9 @@ public class Milestone {
                 if (solid) {
                     latestSolidSubtangleMilestone = milestone;
                     latestSolidSubtangleMilestoneIndex = milestoneIndex;
-                    TipsManager.milestoneArrivalTimeTable.put(latestSolidSubtangleMilestoneIndex, System.currentTimeMillis() / 1000L);
+                    TipsManager.MilestoneSummary milestoneSummary = TipsManager.instance().new MilestoneSummary();
+                    milestoneSummary.pointer = solidMilestonePointer;
+                    TipsManager.milestoneSummaryTable.put(latestSolidSubtangleMilestoneIndex, milestoneSummary);
                     return;
                 }
             }
