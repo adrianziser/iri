@@ -219,7 +219,9 @@ public class Node {
                                     long timestamp = (int) Converter.longValue(receivedTransaction.trits(), Transaction.TIMESTAMP_TRINARY_OFFSET, 27);
                                     if (timestamp > TIMESTAMP_THRESHOLD) {
                                         if ((pointer = StorageTransactions.instance().storeTransaction(receivedTransaction.hash, receivedTransaction, false)) != 0L) {
-                                            StorageTransactions.instance().setArrivalTime(pointer, System.currentTimeMillis() / 1000L);
+                                            Long itsArrivalTime = System.currentTimeMillis() / 1000L;
+                                            StorageTransactions.instance().setArrivalTime(pointer, itsArrivalTime);
+                                            TipsManager.txArrivalTimeTable.put(pointer, itsArrivalTime);
                                             neighbor.incNewTransactions();
                                             broadcast(receivedTransaction);
                                         }
